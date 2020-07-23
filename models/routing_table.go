@@ -126,25 +126,27 @@ func (table RoutingTable) Set(key RoutingKey, newEntry RoutingTableEntry) bool {
 }
 
 // Returns true if routing configuration should be modified, false if it should not.
+// ^ todo reconsider the above comment. This function does change the routingtable itself
 func (table RoutingTable) UpsertBackendServerKey(key RoutingKey, info BackendServerInfo) bool {
 	logger := table.logger.Session("upsert-backend", lager.Data{"key": key, "info": info})
 
 	existingEntry, routingKeyFound := table.Entries[key]
 	if !routingKeyFound {
 		logger.Debug("routing-key-not-found", lager.Data{"routing-key": key})
-		existingEntry = NewRoutingTableEntry([]BackendServerInfo{info})
-		table.Entries[key] = existingEntry
+		existingEntry = NewRoutingTableEntry([]BackendServerInfo{info}) // <--- todo don't know why this is called existingentry. This is the NEW entry that wasn't already in the table.
+		table.Entries[key] = existingEntry // todo <--- this changes the routingtable, unlike what the original comment says above
 		return true
 	}
 
 	newBackendKey, newBackendDetails := table.serverKeyDetailsFromInfo(info)
 	currentBackendDetails, backendFound := existingEntry.Backends[newBackendKey]
+	// todo ^ have't we gotten here only if newBackendKey == key? if the key wasn't equal and wasn't in the table we went into the above if block
 
 	detailData := lager.Data{"old": currentBackendDetails, "new": newBackendDetails}
 	if !backendFound ||
 		currentBackendDetails.UpdateSucceededBy(newBackendDetails) {
 		logger.Debug("applying-change-to-table", detailData)
-		existingEntry.Backends[newBackendKey] = newBackendDetails
+		existingEntry.Backends[newBackendKey] = newBackendDetails // todo <--- this changes the routingtable, unlike what the original comment says above
 	} else {
 		logger.Debug("skipping-stale-event", detailData)
 	}

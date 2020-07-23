@@ -114,12 +114,16 @@ func (u *updater) Sync() {
 			routingKey, backendServerInfo := u.toRoutingTableEntry(logger, routeMapping)
 			logger.Debug("creating-routing-table-entry", lager.Data{"key": routingKey, "value": backendServerInfo})
 			u.routingTable.UpsertBackendServerKey(routingKey, backendServerInfo)
+			// this above command does not capture the return bool value.
+			// the comment near the implementation of UpsetBackendServerKey says it only returns true or false if things SHOULD be updated.
+			// but based on the code it looks like the method .UpsertBackendServerKey does the actual upserting
+			// im amazed that there is no error handing
 		}
 	}
 }
 
 func (u *updater) applyCachedEvents(logger lager.Logger) {
-	logger.Debug("applying-cached-events", lager.Data{"cache_size": len(u.cachedEvents)})
+	logger.Debug("applying-cached-events", lager.Data{"cache_size": len(u.cachedEvents)})I think this could happen because of caching when the sync look has the lock
 	defer logger.Debug("applied-cached-events")
 	for _, e := range u.cachedEvents {
 		u.handleEvent(logger, e)

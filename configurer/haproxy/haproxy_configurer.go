@@ -48,12 +48,14 @@ func (h *Configurer) Configure(routingTable models.RoutingTable) error {
 	h.configFileLock.Lock()
 	defer h.configFileLock.Unlock()
 
-	err := h.createConfigBackup()
+	err := h.createConfigBackup() // Todo look here
+	// this takes the config of the running haproxy and makes a backup of it at {CONF}.bak
 	if err != nil {
 		return err
 	}
 
 	cfgContent, err := ioutil.ReadFile(h.baseConfigFilePath)
+	// this reads in the base generic stuff for haproxy. the stuff not related to specific routes
 	if err != nil {
 		h.logger.Error("failed-reading-base-config-file", err, lager.Data{"base-config-file": h.baseConfigFilePath})
 		return err
@@ -65,8 +67,10 @@ func (h *Configurer) Configure(routingTable models.RoutingTable) error {
 		return err
 	}
 
-	for key, entry := range routingTable.Entries {
-		cfgContent, err = h.getListenConfiguration(key, entry)
+	for key, entry := range routingTable.Entries { // todo look here.
+	// todo will these entries always be in the same order
+	// todo what kind of db calls does this make? in bulk?
+		cfgContent, err = h.getListenConfiguration(key, entry) // for some reason this used the car cfgContent again. I think it's just overwriting it. idk why it needs to be the same variable.
 		if err != nil {
 			continue
 		}
@@ -86,7 +90,7 @@ func (h *Configurer) Configure(routingTable models.RoutingTable) error {
 	if h.scriptRunner != nil {
 		h.logger.Info("running-script")
 
-		err = h.scriptRunner.Run()
+		err = h.scriptRunner.Run() // this is running the make a new HA proxy script
 		if err != nil {
 			h.logger.Error("failed-to-run-script", err)
 			return err
